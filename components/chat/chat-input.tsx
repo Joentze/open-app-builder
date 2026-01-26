@@ -2,23 +2,12 @@
 
 import {
     Attachment,
+    AttachmentInfo,
     AttachmentPreview,
     AttachmentRemove,
     Attachments,
 } from "@/components/ai-elements/attachments";
-import {
-    ModelSelector,
-    ModelSelectorContent,
-    ModelSelectorEmpty,
-    ModelSelectorGroup,
-    ModelSelectorInput,
-    ModelSelectorItem,
-    ModelSelectorList,
-    ModelSelectorLogo,
-    ModelSelectorLogoGroup,
-    ModelSelectorName,
-    ModelSelectorTrigger,
-} from "@/components/ai-elements/model-selector";
+
 import {
     PromptInput,
     PromptInputActionAddAttachments,
@@ -28,62 +17,20 @@ import {
     PromptInputBody,
     PromptInputButton,
     PromptInputFooter,
+    PromptInputHeader,
     type PromptInputMessage,
-    PromptInputProvider,
     PromptInputSubmit,
     PromptInputTextarea,
     PromptInputTools,
     usePromptInputAttachments,
-    usePromptInputController,
 } from "@/components/ai-elements/prompt-input";
-import { Button } from "@/components/ui/button";
-import { ButtonGroup } from "@/components/ui/button-group";
-import { ChatStatus } from "ai";
-import { CheckIcon, GlobeIcon } from "lucide-react";
-import { useState } from "react";
+import { ChatStatus, FileUIPart } from "ai";
+import { GlobeIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { ShineBorder } from "../ui/shine-border";
+import { useTheme } from "next-themes";
 
-const models = [
-    {
-        id: "gpt-4o",
-        name: "GPT-4o",
-        chef: "OpenAI",
-        chefSlug: "openai",
-        providers: ["openai", "azure"],
-    },
-    {
-        id: "gpt-4o-mini",
-        name: "GPT-4o Mini",
-        chef: "OpenAI",
-        chefSlug: "openai",
-        providers: ["openai", "azure"],
-    },
-    {
-        id: "claude-opus-4-20250514",
-        name: "Claude 4 Opus",
-        chef: "Anthropic",
-        chefSlug: "anthropic",
-        providers: ["anthropic", "azure", "google", "amazon-bedrock"],
-    },
-    {
-        id: "claude-sonnet-4-20250514",
-        name: "Claude 4 Sonnet",
-        chef: "Anthropic",
-        chefSlug: "anthropic",
-        providers: ["anthropic", "azure", "google", "amazon-bedrock"],
-    },
-    {
-        id: "gemini-2.0-flash-exp",
-        name: "Gemini 2.0 Flash",
-        chef: "Google",
-        chefSlug: "google",
-        providers: ["google"],
-    },
-];
-
-const SUBMITTING_TIMEOUT = 200;
-const STREAMING_TIMEOUT = 2000;
-
-const PromptInputAttachmentsDisplay = () => {
+const PromptInputAttachmentsDisplay = ({ className }: { className?: string }) => {
     const attachments = usePromptInputAttachments();
 
     if (attachments.files.length === 0) {
@@ -91,7 +38,7 @@ const PromptInputAttachmentsDisplay = () => {
     }
 
     return (
-        <Attachments variant="inline">
+        <Attachments variant="inline" className={className}>
             {attachments.files.map((attachment) => (
                 <Attachment
                     data={attachment}
@@ -99,6 +46,7 @@ const PromptInputAttachmentsDisplay = () => {
                     onRemove={() => attachments.remove(attachment.id)}
                 >
                     <AttachmentPreview />
+                    <AttachmentInfo />
                     <AttachmentRemove />
                 </Attachment>
             ))}
@@ -106,66 +54,14 @@ const PromptInputAttachmentsDisplay = () => {
     );
 };
 
-const HeaderControls = () => {
-    const controller = usePromptInputController();
-
-    return (
-        <header className="mt-8 flex items-center justify-between">
-            <p className="text-sm">
-                Header Controls via{" "}
-                <code className="rounded-md bg-muted p-1 font-bold">
-                    PromptInputProvider
-                </code>
-            </p>
-            <ButtonGroup>
-                <Button
-                    onClick={() => {
-                        controller.textInput.clear();
-                    }}
-                    size="sm"
-                    type="button"
-                    variant="outline"
-                >
-                    Clear input
-                </Button>
-                <Button
-                    onClick={() => {
-                        controller.textInput.setInput("Inserted via PromptInputProvider");
-                    }}
-                    size="sm"
-                    type="button"
-                    variant="outline"
-                >
-                    Set input
-                </Button>
-
-                <Button
-                    onClick={() => {
-                        controller.attachments.clear();
-                    }}
-                    size="sm"
-                    type="button"
-                    variant="outline"
-                >
-                    Clear attachments
-                </Button>
-            </ButtonGroup>
-        </header>
-    );
-};
-
 interface ChatInputProps {
-    model: string;
-    setModel: (model: string) => void;
+    className?: string;
     status: ChatStatus;
+    sendMessage: (message: { text: string, files: FileUIPart[] }) => void;
 }
-const ChatInput = ({ model, setModel, status }: ChatInputProps) => {
-
-    const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
-
-
-    const selectedModelData = models.find((m) => m.id === model);
-
+const ChatInput = ({ status, className, sendMessage }: ChatInputProps) => {
+    const attachments = usePromptInputAttachments();
+    const { theme } = useTheme();
     const handleSubmit = (message: PromptInputMessage) => {
         const hasText = Boolean(message.text);
         const hasAttachments = Boolean(message.files?.length);
@@ -174,92 +70,37 @@ const ChatInput = ({ model, setModel, status }: ChatInputProps) => {
             return;
         }
 
+        sendMessage({ text: message.text, files: message.files });
     };
 
     return (
         <div className="size-full">
-            <PromptInputProvider>
-                <PromptInput globalDrop multiple onSubmit={handleSubmit}>
-                    <PromptInputAttachmentsDisplay />
-                    <PromptInputBody>
-                        <PromptInputTextarea />
-                    </PromptInputBody>
-                    <PromptInputFooter>
-                        <PromptInputTools>
-                            <PromptInputActionMenu>
-                                <PromptInputActionMenuTrigger />
-                                <PromptInputActionMenuContent>
-                                    <PromptInputActionAddAttachments />
-                                </PromptInputActionMenuContent>
-                            </PromptInputActionMenu>
-                            <PromptInputButton>
-                                <GlobeIcon size={16} />
-                                <span>Search</span>
-                            </PromptInputButton>
-                            <ModelSelector
-                                onOpenChange={setModelSelectorOpen}
-                                open={modelSelectorOpen}
-                            >
-                                <ModelSelectorTrigger asChild>
-                                    <PromptInputButton>
-                                        {selectedModelData?.chefSlug && (
-                                            <ModelSelectorLogo
-                                                provider={selectedModelData.chefSlug}
-                                            />
-                                        )}
-                                        {selectedModelData?.name && (
-                                            <ModelSelectorName>
-                                                {selectedModelData.name}
-                                            </ModelSelectorName>
-                                        )}
-                                    </PromptInputButton>
-                                </ModelSelectorTrigger>
-                                <ModelSelectorContent>
-                                    <ModelSelectorInput placeholder="Search models..." />
-                                    <ModelSelectorList>
-                                        <ModelSelectorEmpty>No models found.</ModelSelectorEmpty>
-                                        {["OpenAI", "Anthropic", "Google"].map((chef) => (
-                                            <ModelSelectorGroup heading={chef} key={chef}>
-                                                {models
-                                                    .filter((m) => m.chef === chef)
-                                                    .map((m) => (
-                                                        <ModelSelectorItem
-                                                            key={m.id}
-                                                            onSelect={() => {
-                                                                setModel(m.id);
-                                                                setModelSelectorOpen(false);
-                                                            }}
-                                                            value={m.id}
-                                                        >
-                                                            <ModelSelectorLogo provider={m.chefSlug} />
-                                                            <ModelSelectorName>{m.name}</ModelSelectorName>
-                                                            <ModelSelectorLogoGroup>
-                                                                {m.providers.map((provider) => (
-                                                                    <ModelSelectorLogo
-                                                                        key={provider}
-                                                                        provider={provider}
-                                                                    />
-                                                                ))}
-                                                            </ModelSelectorLogoGroup>
-                                                            {model === m.id ? (
-                                                                <CheckIcon className="ml-auto size-4" />
-                                                            ) : (
-                                                                <div className="ml-auto size-4" />
-                                                            )}
-                                                        </ModelSelectorItem>
-                                                    ))}
-                                            </ModelSelectorGroup>
-                                        ))}
-                                    </ModelSelectorList>
-                                </ModelSelectorContent>
-                            </ModelSelector>
-                        </PromptInputTools>
-                        <PromptInputSubmit status={status} />
-                    </PromptInputFooter>
-                </PromptInput>
 
-                <HeaderControls />
-            </PromptInputProvider>
+            <PromptInput
+                globalDrop
+                multiple
+                onSubmit={handleSubmit}
+                className={cn("border-none", className)}>
+                <ShineBorder shineColor={theme === "dark" ? "#0a0a0a" : "#fbfbfb"} className="rounded-[7px]" duration={60} />
+                {attachments.files.length > 0 &&
+                    (<PromptInputHeader className="px-2">
+                        <PromptInputAttachmentsDisplay />
+                    </PromptInputHeader>)}
+                <PromptInputBody className="border-none">
+                    <PromptInputTextarea placeholder="Build a website for my business..." className="" />
+                </PromptInputBody>
+                <PromptInputFooter>
+                    <PromptInputTools>
+                        <PromptInputActionMenu>
+                            <PromptInputActionMenuTrigger />
+                            <PromptInputActionMenuContent>
+                                <PromptInputActionAddAttachments />
+                            </PromptInputActionMenuContent>
+                        </PromptInputActionMenu>
+                    </PromptInputTools>
+                    <PromptInputSubmit status={status} />
+                </PromptInputFooter>
+            </PromptInput>
         </div>
     );
 };

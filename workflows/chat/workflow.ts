@@ -1,6 +1,9 @@
 import { DurableAgent } from "@workflow/ai/agent";
 import { getWritable } from "workflow";
 import type { ModelMessage, UIMessageChunk } from "ai";
+import { getLogs, runCommand, upsertFiles } from "./tools/steps";
+import z from "zod";
+import { runCommandResponseHook } from "@/workflows/hooks/run-command-response";
 
 export async function chatWorkflow(messages: ModelMessage[]) {
     "use workflow";
@@ -8,6 +11,27 @@ export async function chatWorkflow(messages: ModelMessage[]) {
     const agent = new DurableAgent({
         model: "anthropic/claude-haiku-4.5",
         system: "You are a helpful assistant.",
+        tools: {
+            runCommand: {
+                inputSchema: z.object({
+                    command: z.string(),
+                }),
+                execute: runCommand,
+                outputSchema: z.string(),
+            },
+            upsertFiles: {
+                inputSchema: z.object({
+                    prompt: z.string(),
+                }),
+                outputSchema: z.string(),
+                execute: upsertFiles,
+            },
+            getLogs: {
+                inputSchema: z.object({}),
+                outputSchema: z.string(),
+                execute: getLogs,
+            },
+        },
     });
     await agent.stream({
         messages,

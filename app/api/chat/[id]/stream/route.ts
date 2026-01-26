@@ -6,6 +6,7 @@ export async function GET(
     { params }: { params: Promise<{ id: string }> }
 ) {
     const { id } = await params;
+    console.log(id)
     const { searchParams } = new URL(request.url);
     // Client provides the last chunk index they received
     const startIndexParam = searchParams.get("startIndex");
