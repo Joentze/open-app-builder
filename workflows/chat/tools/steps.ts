@@ -1,5 +1,5 @@
 import { getWritable } from "workflow";
-import type { UIMessageChunk } from "ai";
+import type { LanguageModel, UIMessageChunk } from "ai";
 
 import { streamText, Output } from 'ai';
 import { z } from 'zod';
@@ -12,7 +12,7 @@ async function upsertFiles({ prompt }: { prompt: string }, { toolCallId }: { too
     const writable = getWritable<UIMessageChunk>();
     const writer = writable.getWriter();
     const { elementStream } = streamText({
-        model: 'anthropic/claude-haiku-4.5' as any,
+        model: 'anthropic/claude-haiku-4.5' as LanguageModel,
         output: Output.array({
             element: z.object({
                 directory: z.string(),

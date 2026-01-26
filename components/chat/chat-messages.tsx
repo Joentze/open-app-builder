@@ -9,7 +9,6 @@ import {
 import {
     Conversation,
     ConversationContent,
-    ConversationEmptyState,
     ConversationScrollButton,
 } from "@/components/ai-elements/conversation";
 import {
@@ -22,24 +21,27 @@ import {
 } from "@/components/ai-elements/message";
 import {
     CopyIcon,
-    MessageSquareIcon,
     RefreshCcwIcon,
     ThumbsDownIcon,
     ThumbsUpIcon,
 } from "lucide-react";
-import type { UIMessage } from "ai";
-import { useState } from "react";
+import type { ChatStatus, UIMessage } from "ai";
+import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 
 interface ChatMessagesProps {
     messages: UIMessage[];
     className?: string;
+    status: ChatStatus;
 }
 
-const ChatMessages = ({ messages, className }: ChatMessagesProps) => {
+const ChatMessages = ({ messages, className, status }: ChatMessagesProps) => {
     const [liked, setLiked] = useState<Record<string, boolean>>({});
     const [disliked, setDisliked] = useState<Record<string, boolean>>({});
-
+    const activeRunId = useMemo(() => {
+        if (typeof window === "undefined") return;
+        return localStorage.getItem("active-workflow-run-id") ?? undefined;
+    }, []);
     const handleCopy = (content: string) => {
         navigator.clipboard.writeText(content);
     };
@@ -53,12 +55,20 @@ const ChatMessages = ({ messages, className }: ChatMessagesProps) => {
             <ConversationContent>
 
                 {
-                    messages.map((message) => {
+                    messages.map((message, index) => {
                         const { role, id, parts } = message;
+                        const isLastMessage = index === messages.length - 1;
 
                         const textParts = parts.filter((p) => p.type === "text");
                         const fileParts = parts.filter((p) => p.type === "file");
                         const fullText = textParts.map((p) => p.text).join("");
+
+                        // Show toolbar for assistant messages:
+                        // - Always show for non-last messages
+                        // - For last message: only show if not streaming and no activeRunId
+                        const showToolbar = role === "assistant" && (
+                            !isLastMessage || (status !== "streaming" && !Boolean(activeRunId))
+                        );
 
                         return (
                             <Message from={role} key={id} >
@@ -66,6 +76,8 @@ const ChatMessages = ({ messages, className }: ChatMessagesProps) => {
                                     <Attachments className="mb-2" variant="grid">
                                         {fileParts.map((part, index) => (
                                             <Attachment
+                                                // ignore any
+                                                // @ts-ignore
                                                 data={{ ...part as any, id: `${id}-file-${index}` }}
                                                 key={`${id}-file-${index}`}
                                             >
@@ -83,7 +95,7 @@ const ChatMessages = ({ messages, className }: ChatMessagesProps) => {
                                     )}
                                 </MessageContent>
 
-                                {role === "assistant" && (
+                                {showToolbar && (
                                     <MessageToolbar>
                                         <MessageActions>
                                             <MessageAction

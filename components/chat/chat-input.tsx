@@ -15,7 +15,6 @@ import {
     PromptInputActionMenuContent,
     PromptInputActionMenuTrigger,
     PromptInputBody,
-    PromptInputButton,
     PromptInputFooter,
     PromptInputHeader,
     type PromptInputMessage,
@@ -25,7 +24,6 @@ import {
     usePromptInputAttachments,
 } from "@/components/ai-elements/prompt-input";
 import { ChatStatus, FileUIPart } from "ai";
-import { GlobeIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ShineBorder } from "../ui/shine-border";
 import { useTheme } from "next-themes";

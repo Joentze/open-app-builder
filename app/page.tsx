@@ -5,7 +5,7 @@ import { useMemo } from "react";
 import ChatInput from "@/components/chat/chat-input";
 import ChatMessages from "@/components/chat/chat-messages";
 import { PromptInputProvider } from "@/components/ai-elements/prompt-input";
-import { FileUIPart, lastAssistantMessageIsCompleteWithToolCalls } from "ai";
+import { FileUIPart } from "ai";
 import { ConversationEmptyState } from "@/components/ai-elements/conversation";
 import { Dithering } from "@paper-design/shaders-react";
 import { useTheme } from "next-themes";
@@ -31,7 +31,7 @@ export default function ChatPage() {
   }
   return (
     <div className="flex flex-col min-h-screen">
-      {messages.length > 0 && <ChatMessages messages={messages} className="flex-grow overflow-y-auto max-w-3xl mx-auto" />}
+      {messages.length > 0 && <ChatMessages status={status} messages={messages} className="flex-grow overflow-y-auto max-w-3xl mx-auto" />}
       {messages.length === 0 && (
         <div className="relative size-full flex-1 min-h-0 flex items-center justify-center">
           <div className="m-auto flex flex-col items-center justify-center">
@@ -49,7 +49,7 @@ export default function ChatPage() {
           </div>
         </div>
       )}
-      <div className="w-full max-w-3xl mx-auto pb-4 bg-background sticky bottom-0">
+      <div className="w-full max-w-3xl mx-auto pb-4 px-4 bg-background sticky bottom-0">
 
         <PromptInputProvider >
           <ChatInput status={status} sendMessage={handleSendMessage} />
