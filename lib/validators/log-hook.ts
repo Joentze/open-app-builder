@@ -4,7 +4,7 @@ const logSchema = z.object({
     logs: z.array(z.object({
         level: z.enum(["log", "warn", "error"]),
         message: z.string(),
-        timestamp: z.date(),
+        timestamp: z.string(),
     })),
 });
 

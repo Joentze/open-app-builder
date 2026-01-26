@@ -39,19 +39,17 @@ async function upsertFiles({ prompt }: { prompt: string }, { toolCallId }: { too
 
 async function runCommand({ command }: { command: string }, { toolCallId }: { toolCallId: string }) {
     // no use of 'use steps', see here: https://useworkflow.dev/docs/ai/human-in-the-loop
-    const writable = getWritable<UIMessageChunk>();
-    const writer = writable.getWriter();
+    // Note: getWritable() is NOT available in workflow functions (without "use step")
+    // Hooks must run in workflow context, so we cannot use getWritable here
     const hook = runCommandResponseHook.create({ token: toolCallId });
     // Workflow pauses here until the hook is resolved
     const { response } = await hook;
 
     return `Response from command: '${command}' is '${response}'`;
-
 }
 async function getLogs({ }, { toolCallId }: { toolCallId: string }) {
-    "use step";
-    const writable = getWritable<UIMessageChunk>();
-    const writer = writable.getWriter();
+    // no use of 'use steps' - hooks must run in workflow context
+    // Note: getWritable() is NOT available in workflow functions (without "use step")
     const hook = logResponseHook.create({ token: toolCallId });
     const { logs } = await hook;
     return `Logs: ${logs.map(({ message }) => message).join("\n")}`;

@@ -9,6 +9,7 @@ import { FileUIPart, lastAssistantMessageIsCompleteWithToolCalls } from "ai";
 import { ConversationEmptyState } from "@/components/ai-elements/conversation";
 import { Dithering } from "@paper-design/shaders-react";
 import { useTheme } from "next-themes";
+import { handleToolHooks, type HookTools } from "@/lib/handlers/tool-handler";
 
 export default function ChatPage() {
   const { theme } = useTheme();
@@ -21,7 +22,9 @@ export default function ChatPage() {
   const { messages, sendMessage, status } = useChat({
     resume: Boolean(activeRunId),
     transport,
-    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+    onToolCall: async ({ toolCall }) => {
+      await handleToolHooks({ toolName: toolCall.toolName as HookTools, toolCallId: toolCall.toolCallId, input: toolCall.input });
+    },
   });
   function handleSendMessage({ text, files }: { text: string, files: FileUIPart[] }) {
     sendMessage({ text, files });
@@ -54,8 +57,4 @@ export default function ChatPage() {
       </div>
     </div>
   )
-}
-
-function addToolOutput(arg0: { toolCallId: string; content: string; }) {
-  throw new Error("Function not implemented.");
 }

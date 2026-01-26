@@ -13,6 +13,7 @@ const workflowTransport = new WorkflowChatTransport({
     onChatEnd: () => {
         localStorage.removeItem("active-workflow-run-id");
     },
+
     // Use the stored run ID for reconnection
     prepareReconnectToStreamRequest: (options) => {
         const { api, ...rest } = options;

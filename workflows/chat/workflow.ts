@@ -3,7 +3,7 @@ import { getWritable } from "workflow";
 import type { ModelMessage, UIMessageChunk } from "ai";
 import { getLogs, runCommand, upsertFiles } from "./tools/steps";
 import z from "zod";
-import { runCommandResponseHook } from "@/workflows/hooks/run-command-response";
+
 
 export async function chatWorkflow(messages: ModelMessage[]) {
     "use workflow";
