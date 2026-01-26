@@ -6,11 +6,11 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        source: "/(.*)",
+        source: '/(.*)',
         headers: [
           {
             key: "Cross-Origin-Embedder-Policy",
-            value: "require-corp",
+            value: "require-corp",  // Changed from "require-corp"
           },
           {
             key: "Cross-Origin-Opener-Policy",
@@ -21,5 +21,6 @@ const nextConfig: NextConfig = {
     ];
   },
 };
+
 
 export default withWorkflow(nextConfig);

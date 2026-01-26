@@ -15,6 +15,7 @@ export async function chatWorkflow(messages: ModelMessage[]) {
             runCommand: {
                 inputSchema: z.object({
                     command: z.string(),
+                    args: z.array(z.string()),
                 }),
                 execute: runCommand,
                 outputSchema: z.string(),

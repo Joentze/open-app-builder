@@ -37,7 +37,7 @@ async function upsertFiles({ prompt }: { prompt: string }, { toolCallId }: { too
     return `Created files at: ${directories}`;
 }
 
-async function runCommand({ command }: { command: string }, { toolCallId }: { toolCallId: string }) {
+async function runCommand({ command, args }: { command: string, args: string[] }, { toolCallId }: { toolCallId: string }) {
     // no use of 'use steps', see here: https://useworkflow.dev/docs/ai/human-in-the-loop
     // Note: getWritable() is NOT available in workflow functions (without "use step")
     // Hooks must run in workflow context, so we cannot use getWritable here
@@ -45,7 +45,7 @@ async function runCommand({ command }: { command: string }, { toolCallId }: { to
     // Workflow pauses here until the hook is resolved
     const { response } = await hook;
 
-    return `Response from command: '${command}' is '${response}'`;
+    return `Response from command: '${command} ${args.join(" ")}' is '${response}'`;
 }
 async function getLogs({ }, { toolCallId }: { toolCallId: string }) {
     // no use of 'use steps' - hooks must run in workflow context

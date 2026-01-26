@@ -1,10 +1,11 @@
 import { runCommandResponseHook } from "@/workflows/hooks/run-command-response";
 
 export async function POST(request: Request) {
-    const { toolCallId, command, response } = await request.json();
+    const { toolCallId, command, args, response } = await request.json();
     try {
         await runCommandResponseHook.resume(toolCallId, {
             command,
+            args,
             response,
         });
         return Response.json({ success: true });
