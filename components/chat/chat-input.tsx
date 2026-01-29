@@ -79,7 +79,6 @@ const ChatInput = ({ status, className, sendMessage }: ChatInputProps) => {
                 multiple
                 onSubmit={handleSubmit}
                 className={cn("border-none", className)}>
-                <ShineBorder shineColor={theme === "dark" ? "#0a0a0a" : "#fbfbfb"} className="rounded-[7px]" duration={60} />
                 {attachments.files.length > 0 &&
                     (<PromptInputHeader className="px-2">
                         <PromptInputAttachmentsDisplay />
@@ -98,6 +97,7 @@ const ChatInput = ({ status, className, sendMessage }: ChatInputProps) => {
                     </PromptInputTools>
                     <PromptInputSubmit status={status} />
                 </PromptInputFooter>
+                <ShineBorder shineColor={theme === "dark" ? "#0a0a0a" : "#fbfbfb"} className="rounded-[7px] z-10" duration={60} />
             </PromptInput>
         </div>
     );

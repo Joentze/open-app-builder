@@ -1,7 +1,7 @@
 "use client";
 import { useChat } from "@ai-sdk/react";
 import { workflowTransport as transport } from "@/lib/chat/workflow-transport";
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import ChatInput from "@/components/chat/chat-input";
 import ChatMessages from "@/components/chat/chat-messages";
 import { PromptInputProvider } from "@/components/ai-elements/prompt-input";
@@ -12,6 +12,8 @@ import { useTheme } from "next-themes";
 import { handleToolHooks, type HookTools } from "@/lib/handlers/tool-handler";
 import { useSandbox } from "@/hooks/use-sandbox";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { handleDataPart } from "@/lib/handlers/data-part-handler";
+import { Button } from "@/components/ui/button";
 
 
 
@@ -19,7 +21,8 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 export default function ChatPage() {
 
   const { theme } = useTheme();
-  const { status: sandboxStatus, start, stop, container } = useSandbox();
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const { status: sandboxStatus, url, container } = useSandbox({ iframeRef });
 
 
   // Check for an active workflow run on mount
@@ -31,6 +34,12 @@ export default function ChatPage() {
   const { messages, sendMessage, status } = useChat({
     resume: Boolean(activeRunId),
     transport,
+    onData: async ({ type, id, data }) => {
+      if (container && sandboxStatus === "ready") {
+        console.log("data", data);
+        await handleDataPart({ type, id: id as string, data }, { container });
+      }
+    },
     onToolCall: async ({ toolCall }) => {
       if (container && sandboxStatus === "ready") {
         await handleToolHooks({ toolName: toolCall.toolName as HookTools, toolCallId: toolCall.toolCallId, input: toolCall.input }, { container });
@@ -43,6 +52,15 @@ export default function ChatPage() {
   return (
     <div className="flex flex-col min-h-screen relative">
       <ThemeToggle />
+
+      {/* Hidden iframe for WebContainer - required for the preview to work */}
+      <iframe
+        className="w-32 h-32"
+        ref={iframeRef}
+        title="WebContainer Preview"
+        allow="cross-origin-isolated"
+      />
+
 
       {messages.length > 0 && <ChatMessages status={status} messages={messages} className="flex-grow overflow-y-auto max-w-3xl mx-auto" />}
       {messages.length === 0 && (

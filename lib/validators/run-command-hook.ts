@@ -4,6 +4,7 @@ const runCommandSchema = z.object({
     command: z.string(),
     args: z.array(z.string()),
     response: z.string(),
+    background: z.boolean().optional(),
 });
 
 type RunCommandType = z.infer<typeof runCommandSchema>;

@@ -1,10 +1,13 @@
-
+"use client";
 import { WebContainer } from '@webcontainer/api';
-import { useEffect, useRef, useState } from 'react';
+import { RefObject, useEffect, useRef, useState } from 'react';
 
 type SandboxStatus = "not-started" | "starting" | "mounting" | "mounted" | "ready" | "stopping" | "stopped";
-
-function useSandbox() {
+interface Sandbox {
+    iframeRef: RefObject<HTMLIFrameElement | null>
+}
+function useSandbox({ iframeRef }: Sandbox) {
+    const [url, setUrl] = useState<string | null>(null);
     const [status, setStatus] = useState<SandboxStatus>("not-started");
     const [container, setContainer] = useState<WebContainer | null>(null);
     const hasBooted = useRef(false);
@@ -44,6 +47,17 @@ function useSandbox() {
             throw error;
         }
     }
+    useEffect(() => {
+        if (container) {
+            container.on("server-ready", (port, url) => {
+                console.log("server-ready", port, url);
+                if (iframeRef.current) {
+                    iframeRef.current.src = url;
+                }
+                setUrl(url);
+            });
+        }
+    }, [container]);
 
     useEffect(() => {
         start();
@@ -52,7 +66,7 @@ function useSandbox() {
         };
     }, []);
 
-    return { status, start, stop, container }
+    return { status, start, stop, container, url }
 }
 
 export { useSandbox, type SandboxStatus }
