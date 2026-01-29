@@ -110,7 +110,7 @@ async function handleRunCommand({ toolCallId, input }: { toolCallId: string, inp
     }
 }
 
-async function handleGetLogs({ toolCallId }: { toolCallId: string }, { container }: ToolCallContext): Promise<LogType> {
+async function handleGetLogs({ toolCallId }: { toolCallId: string }, { container: _container }: ToolCallContext): Promise<LogType> {
     try {
         // GET LOGS FROM CONTAINER HERE
         const logs: LogType = {

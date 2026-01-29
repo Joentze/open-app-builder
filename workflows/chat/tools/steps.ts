@@ -51,7 +51,7 @@ async function upsertFiles({ prompt }: { prompt: string }, { toolCallId }: { too
     // NO "use step" here - this is workflow context
 
     // Call the step to stream files to frontend
-    const files = await generateFilesStep(prompt, toolCallId);
+    await generateFilesStep(prompt, toolCallId);
 
     // Now in workflow context - create hook and wait for frontend confirmation
     const hook = filesWrittenResponseHook.create({ token: toolCallId });

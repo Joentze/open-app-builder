@@ -1,6 +1,6 @@
 "use client";
 import { WebContainer } from '@webcontainer/api';
-import { RefObject, useEffect, useRef, useState } from 'react';
+import { RefObject, useCallback, useEffect, useRef, useState } from 'react';
 
 type SandboxStatus = "not-started" | "starting" | "mounting" | "mounted" | "ready" | "stopping" | "stopped";
 interface Sandbox {
@@ -11,10 +11,11 @@ function useSandbox({ iframeRef }: Sandbox) {
     const [status, setStatus] = useState<SandboxStatus>("not-started");
     const [container, setContainer] = useState<WebContainer | null>(null);
     const hasBooted = useRef(false);
+    const containerRef = useRef<WebContainer | null>(null);
 
-    async function start() {
+    const start = useCallback(async () => {
         if (hasBooted.current) {
-            return container;
+            return containerRef.current;
         }
         hasBooted.current = true;
 
@@ -25,6 +26,7 @@ function useSandbox({ iframeRef }: Sandbox) {
             const snapshot = await fetch('/api/container/mount')
             const snapshotBuffer = await snapshot.arrayBuffer()
             await wc.mount(snapshotBuffer)
+            containerRef.current = wc;
             setContainer(wc);
             setStatus("ready");
             console.log("sandbox ready");
@@ -33,12 +35,13 @@ function useSandbox({ iframeRef }: Sandbox) {
             console.error(error);
             throw error;
         }
-    }
+    }, []);
 
-    async function stop() {
+    const stop = useCallback(() => {
         try {
-            if (container) {
-                container.teardown();
+            if (containerRef.current) {
+                containerRef.current.teardown();
+                containerRef.current = null;
                 setContainer(null);
                 setStatus("stopped");
             }
@@ -46,25 +49,34 @@ function useSandbox({ iframeRef }: Sandbox) {
             console.error(error);
             throw error;
         }
-    }
-    useEffect(() => {
-        if (container) {
-            container.on("server-ready", (port, url) => {
-                console.log("server-ready", port, url);
-                if (iframeRef.current) {
-                    iframeRef.current.src = url;
-                }
-                setUrl(url);
-            });
-        }
-    }, [container]);
+    }, []);
 
     useEffect(() => {
-        start();
+        if (container) {
+            container.on("server-ready", (port, serverUrl) => {
+                console.log("server-ready", port, serverUrl);
+                if (iframeRef.current) {
+                    iframeRef.current.src = serverUrl;
+                }
+                setUrl(serverUrl);
+            });
+        }
+    }, [container, iframeRef]);
+
+    useEffect(() => {
+        // Use an IIFE to handle async initialization
+        let mounted = true;
+
+        (async () => {
+            const wc = await start();
+            if (!mounted || !wc) return;
+        })();
+
         return () => {
+            mounted = false;
             stop();
         };
-    }, []);
+    }, [start, stop]);
 
     return { status, start, stop, container, url }
 }

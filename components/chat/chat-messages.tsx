@@ -76,9 +76,7 @@ const ChatMessages = ({ messages, className, status }: ChatMessagesProps) => {
                                     <Attachments className="mb-2" variant="grid">
                                         {fileParts.map((part, index) => (
                                             <Attachment
-                                                // ignore any
-                                                // @ts-ignore
-                                                data={{ ...part as any, id: `${id}-file-${index}` }}
+                                                data={{ ...part, id: `${id}-file-${index}` }}
                                                 key={`${id}-file-${index}`}
                                             >
                                                 <AttachmentPreview />

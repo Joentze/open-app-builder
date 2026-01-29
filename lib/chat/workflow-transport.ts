@@ -16,7 +16,7 @@ const workflowTransport = new WorkflowChatTransport({
 
     // Use the stored run ID for reconnection
     prepareReconnectToStreamRequest: (options) => {
-        const { api, ...rest } = options;
+        const { api: _api, ...rest } = options;
         const runId = localStorage.getItem("active-workflow-run-id");
         if (!runId) throw new Error("No active workflow run ID found");
         return {
