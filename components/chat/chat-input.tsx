@@ -28,6 +28,7 @@ import { cn } from "@/lib/utils";
 import { ShineBorder } from "../ui/shine-border";
 import { useTheme } from "next-themes";
 
+
 const PromptInputAttachmentsDisplay = ({ className }: { className?: string }) => {
     const attachments = usePromptInputAttachments();
 
@@ -95,6 +96,7 @@ const ChatInput = ({ status, className, sendMessage }: ChatInputProps) => {
                             </PromptInputActionMenuContent>
                         </PromptInputActionMenu>
                     </PromptInputTools>
+
                     <PromptInputSubmit status={status} />
                 </PromptInputFooter>
                 <ShineBorder shineColor={theme === "dark" ? "#0a0a0a" : "#fbfbfb"} className="rounded-[7px] z-10" duration={60} />

@@ -1,7 +1,7 @@
 import { DurableAgent } from "@workflow/ai/agent";
 import { getWritable, fetch } from "workflow";
 import type { ModelMessage, UIMessageChunk } from "ai";
-import { getLogs, runCommand, upsertFiles } from "./tools/steps";
+import { checkSandbox, getLogs, runCommand, startSandbox, upsertFiles } from "./tools/steps";
 import z from "zod";
 
 
@@ -33,6 +33,18 @@ export async function chatWorkflow(messages: ModelMessage[]) {
                 inputSchema: z.object({}),
                 outputSchema: z.string(),
                 execute: getLogs,
+            },
+            startSandbox: {
+                inputSchema: z.object({
+                    type: z.enum(["vite", "next"]),
+                }),
+                outputSchema: z.string(),
+                execute: startSandbox,
+            },
+            checkSandbox: {
+                inputSchema: z.object({}),
+                outputSchema: z.string(),
+                execute: checkSandbox,
             },
         },
     });

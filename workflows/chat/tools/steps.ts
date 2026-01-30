@@ -7,6 +7,8 @@ import { nanoid } from "nanoid";
 import { runCommandResponseHook } from "@/workflows/hooks/run-command-response";
 import { logResponseHook } from "@/workflows/hooks/log-response";
 import { filesWrittenResponseHook } from "@/workflows/hooks/files-written-response";
+import { checkSandboxResponseHook } from "@/workflows/hooks/check-sandbox-response";
+import { startSandboxResponseHook } from "@/workflows/hooks/start-sandbox-response";
 
 // Inner step that handles streaming (has "use step")
 async function generateFilesStep(prompt: string, toolCallId: string) {
@@ -84,4 +86,21 @@ async function getLogs({ }, { toolCallId }: { toolCallId: string }) {
     return `Logs: ${logs.map(({ message }) => message).join("\n")}`;
 }
 
-export { upsertFiles, runCommand, getLogs };
+async function checkSandbox({ }, { toolCallId }: { toolCallId: string }) {
+    // no use of 'use steps' - hooks must run in workflow context
+    const hook = checkSandboxResponseHook.create({ token: toolCallId });
+    const { available } = await hook;
+    return available ? "Sandbox is available and ready" : "Sandbox is not available";
+}
+
+async function startSandbox({ }, { toolCallId }: { toolCallId: string }) {
+    // no use of 'use steps' - hooks must run in workflow context
+    const hook = startSandboxResponseHook.create({ token: toolCallId });
+    const { success, error } = await hook;
+    if (success) {
+        return "Sandbox started and mounted successfully";
+    }
+    return `Failed to start sandbox: ${error || "Unknown error"}`;
+}
+
+export { upsertFiles, runCommand, getLogs, checkSandbox, startSandbox };

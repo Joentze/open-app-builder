@@ -36,6 +36,7 @@
         "@radix-ui/react-use-controllable-state": "^1.2.2",
         "@webcontainer/api": "^1.6.1",
         "@workflow/ai": "^4.0.1-beta.50",
+        "@xterm/addon-fit": "^0.11.0",
         "@xyflow/react": "^12.10.0",
         "ai": "^6.0.46",
         "class-variance-authority": "^0.7.1",
@@ -63,6 +64,7 @@
         "use-stick-to-bottom": "^1.1.1",
         "vaul": "^1.1.2",
         "workflow": "^4.0.1-beta.49",
+        "xterm": "^5.3.0",
         "zod": "^4.3.5",
         "zustand": "^5.0.10",
       },
@@ -827,6 +829,8 @@
     "@workflow/world-local": ["@workflow/world-local@4.0.1-beta.26", "", { "dependencies": { "@vercel/queue": "0.0.0-alpha.33", "@workflow/errors": "4.0.1-beta.13", "@workflow/utils": "4.0.1-beta.10", "@workflow/world": "4.0.1-beta.13", "async-sema": "3.1.1", "ulid": "3.0.1", "undici": "6.22.0", "zod": "4.1.11" }, "peerDependencies": { "@opentelemetry/api": "1" }, "optionalPeers": ["@opentelemetry/api"] }, "sha512-LMCi4x8MQ1Dp9mcbZjwOfpBubaeLCuon28HJG22Lihp33BsO6bvwBqi/As84rV5X+0/sXGxhSdKfNxgLOmf/pA=="],
 
     "@workflow/world-vercel": ["@workflow/world-vercel@4.0.1-beta.27", "", { "dependencies": { "@vercel/oidc": "3.0.5", "@vercel/queue": "0.0.0-alpha.33", "@workflow/errors": "4.0.1-beta.13", "@workflow/world": "4.0.1-beta.13", "zod": "4.1.11" } }, "sha512-zYsTNhR69Ba+Hs5k7MpuGS465zFt3VEZqckPopkK/z3TzDshKMesTuA3WAZ+ESfMdJ8hMusG1sDQX3lu2xNYeg=="],
+
+    "@xterm/addon-fit": ["@xterm/addon-fit@0.11.0", "", {}, "sha512-jYcgT6xtVYhnhgxh3QgYDnnNMYTcf8ElbxxFzX0IZo+vabQqSPAjC3c1wJrKB5E19VwQei89QCiZZP86DCPF7g=="],
 
     "@xyflow/react": ["@xyflow/react@12.10.0", "", { "dependencies": { "@xyflow/system": "0.0.74", "classcat": "^5.0.3", "zustand": "^4.4.0" }, "peerDependencies": { "react": ">=17", "react-dom": ">=17" } }, "sha512-eOtz3whDMWrB4KWVatIBrKuxECHqip6PfA8fTpaS2RUGVpiEAe+nqDKsLqkViVWxDGreq0lWX71Xth/SPAzXiw=="],
 
@@ -1959,6 +1963,8 @@
     "xdg-app-paths": ["xdg-app-paths@5.1.0", "", { "dependencies": { "xdg-portable": "^7.0.0" } }, "sha512-RAQ3WkPf4KTU1A8RtFx3gWywzVKe00tfOPFfl2NDGqbIFENQO4kqAJp7mhQjNj/33W5x5hiWWUdyfPq/5SU3QA=="],
 
     "xdg-portable": ["xdg-portable@7.3.0", "", { "dependencies": { "os-paths": "^4.0.1" } }, "sha512-sqMMuL1rc0FmMBOzCpd0yuy9trqF2yTTVe+E9ogwCSWQCdDEtQUwrZPT6AxqtsFGRNxycgncbP/xmOOSPw5ZUw=="],
+
+    "xterm": ["xterm@5.3.0", "", {}, "sha512-8QqjlekLUFTrU6x7xck1MsPzPA571K5zNqWm0M0oroYEWVOptZ0+ubQSkQ3uxIEhcIHRujJy6emDWX4A7qyFzg=="],
 
     "yallist": ["yallist@3.1.1", "", {}, "sha512-a4UGQaWPH59mOXUYnAG2ewncQS4i4F43Tv3JoAM+s2VDAmS9NsK8GpDMLrCHPksFT7h3K6TOoUNn2pb7RoXx4g=="],
 
