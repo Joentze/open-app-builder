@@ -3,6 +3,8 @@ import { getWritable, fetch } from "workflow";
 import type { ModelMessage, UIMessageChunk } from "ai";
 import { checkSandbox, getLogs, runCommand, startSandbox, upsertFiles } from "./tools/steps";
 import z from "zod";
+import { SANDBOX_AGENT_PROMPT } from "@/lib/prompts/sandbox-agent-prompt";
+import { GoogleGenerativeAIProviderOptions } from "@ai-sdk/google";
 
 
 export async function chatWorkflow(messages: ModelMessage[]) {
@@ -10,8 +12,8 @@ export async function chatWorkflow(messages: ModelMessage[]) {
     const writable = getWritable<UIMessageChunk>();
     globalThis.fetch = fetch;
     const agent = new DurableAgent({
-        model: "anthropic/claude-haiku-4.5",
-        system: "You are a helpful assistant.",
+        model: "google/gemini-3-flash",
+        system: SANDBOX_AGENT_PROMPT,
         tools: {
             runCommand: {
                 inputSchema: z.object({
@@ -46,6 +48,14 @@ export async function chatWorkflow(messages: ModelMessage[]) {
                 outputSchema: z.string(),
                 execute: checkSandbox,
             },
+        },
+        providerOptions: {
+            google: {
+                thinkingConfig: {
+                    thinkingBudget: 1024,
+                    includeThoughts: true,
+                },
+            } satisfies GoogleGenerativeAIProviderOptions,
         },
     });
     await agent.stream({

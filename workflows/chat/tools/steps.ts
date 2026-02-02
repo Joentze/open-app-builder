@@ -1,7 +1,7 @@
 import { getWritable } from "workflow";
 import type { LanguageModel, UIMessageChunk } from "ai";
 
-import { streamText, Output } from 'ai';
+import { streamText, Output, stepCountIs } from 'ai';
 import { z } from 'zod';
 import { nanoid } from "nanoid";
 import { runCommandResponseHook } from "@/workflows/hooks/run-command-response";
@@ -9,6 +9,8 @@ import { logResponseHook } from "@/workflows/hooks/log-response";
 import { filesWrittenResponseHook } from "@/workflows/hooks/files-written-response";
 import { checkSandboxResponseHook } from "@/workflows/hooks/check-sandbox-response";
 import { startSandboxResponseHook } from "@/workflows/hooks/start-sandbox-response";
+import { SANDBOX_UPSERT_FILES_AGENT_PROMPT } from "@/lib/prompts/sandbox-agent-prompt";
+import { GoogleGenerativeAIProviderOptions } from "@ai-sdk/google";
 
 // Inner step that handles streaming (has "use step")
 async function generateFilesStep(prompt: string, toolCallId: string) {
@@ -17,14 +19,35 @@ async function generateFilesStep(prompt: string, toolCallId: string) {
     const writer = writable.getWriter();
 
     const { elementStream } = streamText({
-        model: 'anthropic/claude-haiku-4.5' as LanguageModel,
+        model: 'google/gemini-3-flash' as LanguageModel,
+        system: SANDBOX_UPSERT_FILES_AGENT_PROMPT,
         output: Output.array({
             element: z.object({
                 directory: z.string(),
                 content: z.string(),
             }),
         }),
+        stopWhen: stepCountIs(10),
+        tools: {
+            runCommand: {
+                inputSchema: z.object({
+                    command: z.string(),
+                    args: z.array(z.string()),
+                    background: z.boolean().optional().describe("Set to true for long-running commands like 'npm run dev' that don't exit on their own"),
+                }),
+                execute: runCommand,
+                outputSchema: z.string(),
+            },
+        },
         prompt,
+        providerOptions: {
+            google: {
+                thinkingConfig: {
+                    thinkingBudget: 1024,
+                    includeThoughts: true,
+                },
+            } satisfies GoogleGenerativeAIProviderOptions,
+        },
     });
 
     const response: Array<{ directory: string; content: string }> = [];

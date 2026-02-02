@@ -77,7 +77,11 @@ export default function ChatPage() {
         <ResizablePanel defaultSize={60}>
           <ResizablePanelGroup orientation="vertical">
             <ResizablePanel defaultSize={75}>
-              <AppPreview url={url} status={sandboxStatus} iframeRef={iframeRef} onClose={() => { }} onFullscreen={() => { }} onReload={() => { }} />
+              <AppPreview url={url} status={sandboxStatus} iframeRef={iframeRef} onClose={() => { }} onFullscreen={() => { }} onReload={() => {
+                if (iframeRef.current) {
+                  iframeRef.current.src = iframeRef.current.src;
+                }
+              }} />
             </ResizablePanel>
             <ResizablePanel defaultSize={25}>
               <TerminalPreview terminalRef={terminalRef} onMount={initTerminal} />

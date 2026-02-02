@@ -38,6 +38,23 @@ async function retryWithBackoff<T>(
     throw new Error("Max retries exceeded");
 }
 
+function getTerminalLogs(terminal: Terminal | null, maxChars: number = 500): string {
+    if (!terminal) return "";
+
+    const buffer = terminal.buffer.active;
+    const lines: string[] = [];
+
+    for (let i = 0; i < buffer.length; i++) {
+        const line = buffer.getLine(i);
+        if (line) {
+            lines.push(line.translateToString(true));
+        }
+    }
+
+    const fullText = lines.join('\n');
+    return fullText.slice(-maxChars);
+}
+
 async function handleToolHooks({ toolName, toolCallId, input }: { toolName: HookTools, toolCallId: string, input: unknown }, context: ToolCallContext) {
 
     switch (toolName) {
@@ -84,7 +101,7 @@ async function handleRunCommand({ toolCallId, input }: { toolCallId: string, inp
         // RUN COMMAND IN CONTAINER HERE
         const response = await container.spawn(command, args);
         const outputChunks: string[] = [];
-
+        xtermRef.current?.write(command + " " + args.join(" ") + "\n");
         // Collect output as it comes
         response.output.pipeTo(new WritableStream({
             write(data) {
@@ -143,7 +160,7 @@ async function handleRunCommand({ toolCallId, input }: { toolCallId: string, inp
     }
 }
 
-async function handleGetLogs({ toolCallId }: { toolCallId: string }, { container }: ToolCallContext): Promise<LogType> {
+async function handleGetLogs({ toolCallId }: { toolCallId: string }, { container, xtermRef }: ToolCallContext): Promise<LogType> {
     // Check if container is available
     if (!container) {
         const errorLogs: LogType = {
@@ -170,12 +187,13 @@ async function handleGetLogs({ toolCallId }: { toolCallId: string }, { container
     }
 
     try {
-        // GET LOGS FROM CONTAINER HERE
+        // Get last 500 characters from terminal buffer
+        const terminalOutput = getTerminalLogs(xtermRef.current, 500);
         const logs: LogType = {
             logs: [
                 {
                     level: "log",
-                    message: "Hello this is joen from logs",
+                    message: terminalOutput || "No logs available",
                     timestamp: new Date().toISOString(),
                 },
             ]
