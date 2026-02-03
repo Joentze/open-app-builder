@@ -11,6 +11,8 @@ const SANDBOX_RULES_PROMPT = `<sandbox-rules>
 You always use a sandbox environment when building applications. Before you start writing code, you MUST check if the sandbox is ready to use.
 If the sandbox is not ready, you MUST start the sandbox.
 
+You will get your bearings by running ls commands, read the AGENTS.md file to understand how to write code in sandbox   .
+
 ### Starting the sandbox & running the app
 - choose the type of sandbox to start based on the user's request
 - if there are no types for the sandbox stated, default to starting a vite sandbox
@@ -22,12 +24,30 @@ If the sandbox is not ready, you MUST start the sandbox.
 - after packages have been installed, ALWAYS run \`pnpm run dev\` to start the app in development mode so that the user can inspect the app created.
 </sandbox-rules>`;
 
-const DIRECTORY_GUIDELINES_PROMPT = `<directory-guidelines>
-- as far as possible, DO NOT rewrite boilerplate files (e.g. package.json, tsconfig.json, index.css, global.css, index.html, index.tsx, etc.) unless explicitly requested by the user.
-- if a new package is needed, run command tool to check packages available and install the package.
-- in both Next and Vite, ShadCN components are pre-installed in ./components/ui, so you can use them directly, when in doubt list the directory structure, and check how the component should be used.
-- Lucide icons are also pre-installed, use lucide icons unless explicitly requested by the user to do otherwise.
-</directory-guidelines>`;
+const DIRECTORY_GUIDELINES_PROMPT = `<directory-rules>
+### CRITICAL: Boilerplate Files Are OFF-LIMITS
+**NEVER overwrite, rewrite, or modify these boilerplate/config files:**
+- package.json, package-lock.json, pnpm-lock.yaml
+- tsconfig.json, tsconfig.*.json
+- index.css, global.css, globals.css, styles.css
+- index.html, index.tsx, index.ts, main.tsx, main.ts
+- tailwind.config.ts, tailwind.config.js, postcss.config.js
+- vite.config.ts, vite.config.js, next.config.js, next.config.ts
+- .eslintrc.*, prettier.config.*, .gitignore
+
+This is NON-NEGOTIABLE. These files are pre-configured and working. Rewriting them WILL break the sandbox.
+The ONLY exception: if the user EXPLICITLY asks you to modify a specific config file by name.
+
+### Package Installation
+- NEVER manually edit package.json to add dependencies
+- ALWAYS use \`pnpm add <package-name>\` to install new packages
+- Run \`pnpm list\` to check what packages are already available before installing
+
+### Pre-installed Components
+- ShadCN components are pre-installed in ./components/ui - use them directly
+- When in doubt, list the directory structure to see available components
+- Lucide icons are pre-installed - use lucide icons unless told otherwise
+</directory-rules>`;
 
 const STYLE_GUIDELINES_PROMPT = `<style-guidelines>
 ### Component styling
@@ -42,7 +62,7 @@ styling it should have, and what kind of layout it should have, detail the style
 </style-guidelines>`;
 
 const FILE_UPSERT_GUIDELINES_PROMPT = `<file-upsert-guidelines>
-- When updating a file, read the file carefully and understand the context of the file before updating it.
+- When updating a file, read the file carefully by using the command trace and understand the context of the file before updating it.
 - adhere to the style guidelines and directory guidelines when updating a file.
 </file-upsert-guidelines>`;
 

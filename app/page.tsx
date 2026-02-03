@@ -67,7 +67,7 @@ export default function ChatPage() {
             <div className="flex-1 min-h-0 overflow-y-auto">
               <Chat messages={messages} status={status} sandboxStatus={sandboxStatus} />
             </div>
-            <div className="w-full max-w-3xl mx-auto py-4 px-4 bg-background border-t border-border/40">
+            <div className="w-full max-w-3xl mx-auto py-4 pr-0 pl-4 bg-background">
               <PromptInputProvider>
                 <ChatInput status={status} sendMessage={handleSendMessage} />
               </PromptInputProvider>
@@ -77,7 +77,9 @@ export default function ChatPage() {
         <ResizablePanel defaultSize={60}>
           <ResizablePanelGroup orientation="vertical">
             <ResizablePanel defaultSize={75}>
-              <AppPreview url={url} status={sandboxStatus} iframeRef={iframeRef} onClose={() => { }} onFullscreen={() => { }} onReload={() => {
+              <AppPreview url={url} status={sandboxStatus} iframeRef={iframeRef} onClose={() => { }} onFullscreen={() => {
+                iframeRef.current?.requestFullscreen();
+              }} onReload={() => {
                 if (iframeRef.current) {
                   iframeRef.current.src = iframeRef.current.src;
                 }

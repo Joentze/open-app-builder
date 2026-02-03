@@ -1,7 +1,7 @@
 import { getWritable } from "workflow";
 import type { LanguageModel, UIMessageChunk } from "ai";
 
-import { streamText, Output, stepCountIs } from 'ai';
+import { streamText, Output } from 'ai';
 import { z } from 'zod';
 import { nanoid } from "nanoid";
 import { runCommandResponseHook } from "@/workflows/hooks/run-command-response";
@@ -13,38 +13,24 @@ import { SANDBOX_UPSERT_FILES_AGENT_PROMPT } from "@/lib/prompts/sandbox-agent-p
 import { GoogleGenerativeAIProviderOptions } from "@ai-sdk/google";
 
 // Inner step that handles streaming (has "use step")
-async function generateFilesStep(prompt: string, toolCallId: string) {
+async function generateFilesStep(prompt: string, commandTraceString: string, toolCallId: string) {
     "use step";
     const writable = getWritable<UIMessageChunk>();
     const writer = writable.getWriter();
-
     const { elementStream } = streamText({
         model: 'google/gemini-3-flash' as LanguageModel,
-        system: SANDBOX_UPSERT_FILES_AGENT_PROMPT,
+        system: `${SANDBOX_UPSERT_FILES_AGENT_PROMPT}\n\nCommand Trace: ${commandTraceString}`,
         output: Output.array({
             element: z.object({
                 directory: z.string(),
                 content: z.string(),
             }),
         }),
-        stopWhen: stepCountIs(10),
-        tools: {
-            runCommand: {
-                inputSchema: z.object({
-                    command: z.string(),
-                    args: z.array(z.string()),
-                    background: z.boolean().optional().describe("Set to true for long-running commands like 'npm run dev' that don't exit on their own"),
-                }),
-                execute: runCommand,
-                outputSchema: z.string(),
-            },
-        },
         prompt,
         providerOptions: {
             google: {
                 thinkingConfig: {
-                    thinkingBudget: 1024,
-                    includeThoughts: true,
+                    thinkingLevel: "minimal"
                 },
             } satisfies GoogleGenerativeAIProviderOptions,
         },
@@ -72,19 +58,19 @@ async function generateFilesStep(prompt: string, toolCallId: string) {
 }
 
 // Outer workflow function (NO "use step") - can use hooks
-async function upsertFiles({ prompt }: { prompt: string }, { toolCallId }: { toolCallId: string }) {
+async function upsertFiles({ prompt, commandTrace }: { prompt: string, commandTrace: string[] }, { toolCallId }: { toolCallId: string }) {
     // NO "use step" here - this is workflow context
-
+    const lastFiveCommands = commandTrace.slice(-5);
+    const lastFiveCommandsString = lastFiveCommands.join("\n");
     // Call the step to stream files to frontend
-    await generateFilesStep(prompt, toolCallId);
+    const files = await generateFilesStep(prompt, lastFiveCommandsString, toolCallId);
 
     // Now in workflow context - create hook and wait for frontend confirmation
     const hook = filesWrittenResponseHook.create({ token: toolCallId });
     const { files: confirmedFiles } = await hook;
 
     // Workflow resumes here after frontend confirms files were written to sandbox
-    const successCount = confirmedFiles.filter(f => f.success).length;
-    return `Created ${successCount}/${confirmedFiles.length} files: ${confirmedFiles.map(f => f.directory).join(", ")}`;
+    return files
 }
 
 async function runCommand({ command, args, background = false }: { command: string, args: string[], background?: boolean }, { toolCallId }: { toolCallId: string }) {

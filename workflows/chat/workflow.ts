@@ -4,15 +4,16 @@ import type { ModelMessage, UIMessageChunk } from "ai";
 import { checkSandbox, getLogs, runCommand, startSandbox, upsertFiles } from "./tools/steps";
 import z from "zod";
 import { SANDBOX_AGENT_PROMPT } from "@/lib/prompts/sandbox-agent-prompt";
-import { GoogleGenerativeAIProviderOptions } from "@ai-sdk/google";
 
 
 export async function chatWorkflow(messages: ModelMessage[]) {
     "use workflow";
     const writable = getWritable<UIMessageChunk>();
     globalThis.fetch = fetch;
+
+    let commandTrace: string[] = [];
     const agent = new DurableAgent({
-        model: "google/gemini-3-flash",
+        model: "anthropic/claude-haiku-4.5",
         system: SANDBOX_AGENT_PROMPT,
         tools: {
             runCommand: {
@@ -21,7 +22,11 @@ export async function chatWorkflow(messages: ModelMessage[]) {
                     args: z.array(z.string()),
                     background: z.boolean().optional().describe("Set to true for long-running commands like 'npm run dev' that don't exit on their own"),
                 }),
-                execute: runCommand,
+                execute: async (args, toolData) => {
+                    const response = await runCommand(args, { toolCallId: toolData.toolCallId })
+                    commandTrace.push(response)
+                    return response
+                },
                 outputSchema: z.string(),
             },
             upsertFiles: {
@@ -29,7 +34,12 @@ export async function chatWorkflow(messages: ModelMessage[]) {
                     prompt: z.string(),
                 }),
                 outputSchema: z.string(),
-                execute: upsertFiles,
+                description: `Use this tool to upsert files in the sandbox, use the prompt to describe in detail, 
+                what kind of styling/features/components it should have, and what kind of layout it should have, 
+                detail the style guidelines as well. If you are inserting/updating a file, explicityly mention
+                in the prompt. If user wants to update a file, use runCommand tool to get the current contents of the file.
+                and then use the upsertFiles tool to update the file.`,
+                execute: async ({ prompt }, toolData) => { return await upsertFiles({ prompt, commandTrace }, toolData) },
             },
             getLogs: {
                 inputSchema: z.object({}),
@@ -49,14 +59,7 @@ export async function chatWorkflow(messages: ModelMessage[]) {
                 execute: checkSandbox,
             },
         },
-        providerOptions: {
-            google: {
-                thinkingConfig: {
-                    thinkingBudget: 1024,
-                    includeThoughts: true,
-                },
-            } satisfies GoogleGenerativeAIProviderOptions,
-        },
+
     });
     await agent.stream({
         messages,

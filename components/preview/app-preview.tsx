@@ -76,7 +76,7 @@ const AppPreview = ({ status, url, iframeRef, onClose, onFullscreen, onReload, l
                     <div className="flex-1">
                         <iframe
                             ref={iframeRef}
-                            className="size-full"
+                            className="size-full w-full"
                             title="WebContainer Preview"
                             allow="cross-origin-isolated"
                         />

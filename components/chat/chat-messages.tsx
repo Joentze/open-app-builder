@@ -20,14 +20,19 @@ import {
     MessageToolbar,
 } from "@/components/ai-elements/message";
 import {
+    Box,
     CopyIcon,
+    Eye,
     RefreshCcwIcon,
+    Terminal,
     ThumbsDownIcon,
     ThumbsUpIcon,
 } from "lucide-react";
 import type { ChatStatus, UIMessage } from "ai";
 import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
+import { Reasoning, ReasoningContent, ReasoningTrigger } from "../ai-elements/reasoning";
+import ShimmerTextToolCall from "../ai-elements/tool/shimmer-text-tool-call";
 
 interface ChatMessagesProps {
     messages: UIMessage[];
@@ -86,11 +91,51 @@ const ChatMessages = ({ messages, className, status }: ChatMessagesProps) => {
                                     </Attachments>
                                 )}
                                 <MessageContent >
-                                    {role === "assistant" ? (
-                                        <MessageResponse >{fullText}</MessageResponse>
-                                    ) : (
-                                        fullText
-                                    )}
+                                    {message.parts.map((part, i) => {
+                                        switch (part.type) {
+                                            case "text":
+                                                return (
+                                                    <MessageResponse key={`${message.id}-${i}`}>
+                                                        {part.text}
+                                                    </MessageResponse>
+                                                );
+                                            case "reasoning":
+                                                if (
+                                                    i === message.parts.length - 1 &&
+                                                    message.id === messages.at(-1)?.id
+                                                ) {
+                                                    return (
+                                                        <Reasoning
+                                                            key={`${message.id}-${i}`}
+                                                            className="w-full"
+                                                            isStreaming={
+                                                                status === "streaming" &&
+                                                                i === message.parts.length - 1 &&
+                                                                message.id === messages.at(-1)?.id
+                                                            }
+                                                        >
+                                                            <ReasoningTrigger />
+                                                            <ReasoningContent>{part.text}</ReasoningContent>
+                                                        </Reasoning>
+                                                    );
+                                                }
+                                                break;
+                                            case "tool-runCommand":
+                                                return (
+                                                    <ShimmerTextToolCall status={part.state} icon={<Terminal className="size-4" />} beforeText="Running command..." afterText="Command ran" />
+                                                )
+                                            case "tool-checkSandbox":
+                                                return (
+                                                    <ShimmerTextToolCall status={part.state} icon={<Eye className="size-4" />} beforeText="Checking sandbox..." afterText="Sandbox checked" />
+                                                )
+                                            case "tool-startSandbox":
+                                                return (
+                                                    <ShimmerTextToolCall status={part.state} icon={<Box className="size-4" />} beforeText="Starting sandbox..." afterText="Sandbox started" />
+                                                )
+                                            default:
+                                                return null;
+                                        }
+                                    })}
                                 </MessageContent>
 
                                 {showToolbar && (
