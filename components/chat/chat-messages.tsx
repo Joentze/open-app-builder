@@ -33,6 +33,7 @@ import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Reasoning, ReasoningContent, ReasoningTrigger } from "../ai-elements/reasoning";
 import ShimmerTextToolCall from "../ai-elements/tool/shimmer-text-tool-call";
+import UpsertFilesToolCall from "../ai-elements/tool/upsert-files-tool-call";
 
 interface ChatMessagesProps {
     messages: UIMessage[];
@@ -122,16 +123,33 @@ const ChatMessages = ({ messages, className, status }: ChatMessagesProps) => {
                                                 break;
                                             case "tool-runCommand":
                                                 return (
-                                                    <ShimmerTextToolCall status={part.state} icon={<Terminal className="size-4" />} beforeText="Running command..." afterText="Command ran" />
+                                                    <ShimmerTextToolCall key={`${message.id}-${i}`} status={part.state} icon={<Terminal className="size-4" />} beforeText="Running command..." afterText="Command ran" />
                                                 )
                                             case "tool-checkSandbox":
                                                 return (
-                                                    <ShimmerTextToolCall status={part.state} icon={<Eye className="size-4" />} beforeText="Checking sandbox..." afterText="Sandbox checked" />
+                                                    <ShimmerTextToolCall key={`${message.id}-${i}`} status={part.state} icon={<Eye className="size-4" />} beforeText="Checking sandbox..." afterText="Sandbox checked" />
                                                 )
                                             case "tool-startSandbox":
                                                 return (
-                                                    <ShimmerTextToolCall status={part.state} icon={<Box className="size-4" />} beforeText="Starting sandbox..." afterText="Sandbox started" />
+                                                    <ShimmerTextToolCall key={`${message.id}-${i}`} status={part.state} icon={<Box className="size-4" />} beforeText="Starting sandbox..." afterText="Sandbox started" />
                                                 )
+                                            case "tool-upsertFiles": {
+                                                const toolCallId = (part as { toolCallId?: string }).toolCallId || '';
+                                                // Find all data-file-upsert parts that belong to this tool call
+                                                const fileParts = message.parts.filter((p) =>
+                                                    p.type === 'data-file-upsert' &&
+                                                    (p as { id?: string }).id?.startsWith(toolCallId)
+                                                );
+                                                const files = fileParts.map((p) => (p as { data: { directory: string; content: string } }).data);
+                                                return (
+                                                    <UpsertFilesToolCall
+                                                        key={`${message.id}-${i}`}
+                                                        toolCallId={toolCallId}
+                                                        state={part.state}
+                                                        files={files}
+                                                    />
+                                                );
+                                            }
                                             default:
                                                 return null;
                                         }

@@ -1,8 +1,7 @@
 "use client";
 import { WebContainer } from '@webcontainer/api';
 import { RefObject, useCallback, useEffect, useRef, useState } from 'react';
-import { FitAddon } from '@xterm/addon-fit'
-import { Terminal } from 'xterm';
+import type { Terminal } from 'xterm';
 import { useTheme } from 'next-themes';
 
 type SandboxStatus = "not-started" | "starting" | "mounting" | "mounted" | "dev" | "ready" | "stopping" | "stopped";
@@ -18,15 +17,20 @@ function useSandbox({ iframeRef, terminalRef, xtermRef }: Sandbox) {
     const { resolvedTheme } = useTheme();
     const hasBooted = useRef(false);
     const containerRef = useRef<WebContainer | null>(null);
-    const fitAddonRef = useRef<FitAddon | null>(null);
+    const fitAddonRef = useRef<import('@xterm/addon-fit').FitAddon | null>(null);
     const terminalInitialized = useRef(false);
 
     // Initialize terminal when the ref is ready
-    const initTerminal = useCallback(() => {
+    const initTerminal = useCallback(async () => {
         if (terminalInitialized.current || !terminalRef.current) {
             return;
         }
         terminalInitialized.current = true;
+
+        const [{ Terminal }, { FitAddon }] = await Promise.all([
+            import('xterm'),
+            import('@xterm/addon-fit')
+        ]);
 
         const terminal = new Terminal({
             convertEol: true,
@@ -91,7 +95,7 @@ function useSandbox({ iframeRef, terminalRef, xtermRef }: Sandbox) {
         hasBooted.current = true;
 
         // Initialize terminal if not already done
-        initTerminal();
+        await initTerminal();
 
         try {
             setStatus("starting");
@@ -146,6 +150,7 @@ function useSandbox({ iframeRef, terminalRef, xtermRef }: Sandbox) {
         if (container) {
             container.on("server-ready", (port, serverUrl) => {
                 console.log("server-ready", port, serverUrl);
+                if (port >= 3000 && port <= 3999) return;
                 if (iframeRef.current) {
                     iframeRef.current.src = serverUrl;
                     setStatus("dev");
