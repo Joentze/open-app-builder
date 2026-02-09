@@ -12,6 +12,20 @@ import { startSandboxResponseHook } from "@/workflows/hooks/start-sandbox-respon
 import { SANDBOX_UPSERT_FILES_AGENT_PROMPT } from "@/lib/prompts/sandbox-agent-prompt";
 import { GoogleGenerativeAIProviderOptions } from "@ai-sdk/google";
 
+interface CheckPrefixesParams {
+    directory: string;
+    allowedDirectories: string[];
+}
+
+
+// Created to prevent coding agents from using specific parts of the project
+// function checkPrefixes({ directory, allowedDirectories }: CheckPrefixesParams) {
+//     const isAllowed = allowedDirectories.some((prefix) => directory.startsWith(prefix));
+//     if (!isAllowed) {
+//         throw new Error(`Directory "${directory}" is not allowed. Must start with one of: ${allowedDirectories.join(', ')}`);
+//     }
+// }
+
 // Inner step that handles streaming (has "use step")
 async function generateFilesStep(prompt: string, commandTraceString: string, toolCallId: string) {
     "use step";
@@ -60,7 +74,7 @@ async function generateFilesStep(prompt: string, commandTraceString: string, too
 // Outer workflow function (NO "use step") - can use hooks
 async function upsertFiles({ prompt, commandTrace }: { prompt: string, commandTrace: string[] }, { toolCallId }: { toolCallId: string }) {
     // NO "use step" here - this is workflow context
-    const lastFiveCommands = commandTrace.slice(-5);
+    const lastFiveCommands = commandTrace.slice(-3);
     const lastFiveCommandsString = lastFiveCommands.join("\n");
     // Call the step to stream files to frontend
     const files = await generateFilesStep(prompt, lastFiveCommandsString, toolCallId);

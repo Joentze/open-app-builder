@@ -9,9 +9,9 @@ const CODE_RULES_PROMPT = `<code-rules>
 
 const SANDBOX_RULES_PROMPT = `<sandbox-rules>
 You always use a sandbox environment when building applications. Before you start writing code, you MUST check if the sandbox is ready to use.
-If the sandbox is not ready, you MUST start the sandbox.
+If the sandbox is not ready, you MUST start the sandbox. 
 
-You will get your bearings by running ls commands, read the AGENTS.md file to understand how to write code in sandbox   .
+You will get your bearings by running ls commands, YOU MUST READ THE AGENTS.md file to understand how to write code in sandbox   .
 
 ### Starting the sandbox & running the app
 - choose the type of sandbox to start based on the user's request

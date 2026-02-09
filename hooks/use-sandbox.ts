@@ -150,12 +150,16 @@ function useSandbox({ iframeRef, terminalRef, xtermRef }: Sandbox) {
         if (container) {
             container.on("server-ready", (port, serverUrl) => {
                 console.log("server-ready", port, serverUrl);
-                if (port >= 3000 && port <= 3999) return;
-                if (iframeRef.current) {
-                    iframeRef.current.src = serverUrl;
-                    setStatus("dev");
+                if (port >= 3000 && port <= 3999) {
+                    if (iframeRef.current) {
+                        iframeRef.current.src = serverUrl;
+                        setStatus("dev");
+                    }
                 }
                 setUrl(serverUrl);
+            });
+            container.on("error", (error) => {
+                console.error("162", error);
             });
         }
     }, [container, iframeRef]);

@@ -1,67 +1,146 @@
-import { DurableAgent } from "@workflow/ai/agent";
-import { getWritable, fetch } from "workflow";
-import type { ModelMessage, UIMessageChunk } from "ai";
-import { checkSandbox, getLogs, runCommand, startSandbox, upsertFiles } from "./tools/steps";
 import z from "zod";
-import { SANDBOX_AGENT_PROMPT } from "@/lib/prompts/sandbox-agent-prompt";
+import { getWritable, fetch } from "workflow";
+import { DurableAgent } from "@workflow/ai/agent";
+import { noOfTimesToolHasBeenUsed } from "@/workflows/utils/conditions/tool-use";
+import { CodingAgentType, codingAgent } from "@/workflows/utils/agents/coding-agent";
+import { convertToModelMessages, generateText, hasToolCall, readUIMessageStream, UIMessage, type ModelMessage, type UIMessageChunk } from "ai";
 
 
-export async function chatWorkflow(messages: ModelMessage[]) {
+export async function chatWorkflow(incomingMessages: ModelMessage[]) {
     "use workflow";
     const writable = getWritable<UIMessageChunk>();
     globalThis.fetch = fetch;
+    // orchestrator agent, can come up with questionaire for user, this will be human approved on the frontend
+    // once the tool is sent in, the orchestrator agent will come up with a to-do list
+    // the to-do list will be sent to the coding agent, and the coding agent will execute the tasks
 
     let commandTrace: string[] = [];
-    const agent = new DurableAgent({
-        model: "anthropic/claude-haiku-4.5",
-        system: SANDBOX_AGENT_PROMPT,
-        tools: {
-            runCommand: {
-                inputSchema: z.object({
-                    command: z.string(),
-                    args: z.array(z.string()),
-                    background: z.boolean().optional().describe("Set to true for long-running commands like 'npm run dev' that don't exit on their own"),
-                }),
-                execute: async (args, toolData) => {
-                    const response = await runCommand(args, { toolCallId: toolData.toolCallId })
-                    commandTrace.push(response)
-                    return response
-                },
-                outputSchema: z.string(),
-            },
-            upsertFiles: {
-                inputSchema: z.object({
-                    prompt: z.string(),
-                }),
-                outputSchema: z.string(),
-                description: `Use this tool to upsert files in the sandbox, use the prompt to describe in detail, 
-                what kind of styling/features/components it should have, and what kind of layout it should have, 
-                detail the style guidelines as well. If you are inserting/updating a file, explicityly mention
-                in the prompt. If user wants to update a file, use runCommand tool to get the current contents of the file.
-                and then use the upsertFiles tool to update the file.`,
-                execute: async ({ prompt }, toolData) => { return await upsertFiles({ prompt, commandTrace }, toolData) },
-            },
-            getLogs: {
-                inputSchema: z.object({}),
-                outputSchema: z.string(),
-                execute: getLogs,
-            },
-            startSandbox: {
-                inputSchema: z.object({
-                    type: z.enum(["vite", "next"]),
-                }),
-                outputSchema: z.string(),
-                execute: startSandbox,
-            },
-            checkSandbox: {
-                inputSchema: z.object({}),
-                outputSchema: z.string(),
-                execute: checkSandbox,
-            },
-        },
+    let messages: ModelMessage[] = incomingMessages;
 
-    });
-    await agent.stream({
+    const orchestrator = new DurableAgent({
+        model: "anthropic/claude-haiku-4.5",
+        system: "You are a helpful assistant, use startCoding tool to create a to-do list for the coding agent to execute.",
+        tools: {
+            // only run this once in the message history
+            // createPRD: {
+            //     inputSchema: z.object({
+            //         questions: z.array(z.object({
+            //             question: z.string(),
+            //             options: z.array(z.string()).length(3),
+            //         })).min(2).max(4),
+            //     }),
+            //     outputSchema: z.string()
+            // },
+            // creates a to-do list that runs sequentially
+            startCoding: {
+                inputSchema: z.object({
+                    tasks: z.array(z.object({
+                        task: z.string().describe(`
+                            A high-level step describing what needs to be built.
+                            Keep it concise but specific enough for a coding agent to act on.
+                            Focus on the *what*, not the *how* — the coding agent will figure out implementation details.
+                            `),
+                        type: z.enum(["db", "api", "ui"]).describe(`
+                            The layer this task belongs to. Tasks are executed in order, so
+                            "db" tasks run first, then "api", then "ui".
+                            `),
+                    })).min(1).max(6),
+                }).describe(`
+                    Plan the app by breaking it into high-level build steps, ordered bottom-up:
+
+                    1. **Database layer ("db")** — Define the tables/models and their relationships needed to persist the app's data.
+                    2. **API layer ("api")** — Define the server endpoints or actions that read/write from the database and contain core business logic.
+                    3. **UI layer ("ui")** — Define the pages and key components the user interacts with, wired to the API.
+
+                    Not every project requires all three layers. Only include the layers that are actually needed:
+                    - A static landing page may only need "ui" tasks.
+                    - A frontend-only app (e.g. a calculator) may only need "ui" tasks with no db or api.
+                    - A full-stack app with persistence will typically need all three layers.
+                    Use your judgement based on what the user described. If the user's request is too vague or ambiguous
+                    to determine which layers are needed, do NOT call this tool — instead, ask the user for clarification.
+
+                    Rules:
+                    - Each task should map to exactly one layer (db, api, or ui).
+                    - Order tasks so that each layer builds on the one before it (db → api → ui).
+                    - Keep tasks coarse-grained — one task per major feature area per layer is ideal.
+                    - Do NOT include setup/boilerplate tasks (project init, install deps, etc.) — those are handled automatically.
+                    `),
+                execute: async function ({ tasks }, { abortSignal }) {
+                    for (const [index, currentTask] of tasks.entries()) {
+                        console.log("currentTask", currentTask);
+                        // writable.getWriter().write({
+                        //     id: index,
+                        //     type: "data-task-start",
+                        //     data: {
+                        //         task: currentTask.task,
+                        //         type: currentTask.type,
+                        //     },
+                        // });
+                        try {
+                            const { task, type } = currentTask;
+                            const codingAgentResult = await codingAgent({
+                                commandTrace, type: type as CodingAgentType, writable, messages: [
+                                    ...messages,
+                                    {
+                                        role: "user" as const,
+                                        content: `Complete this task: ${task}`,
+                                    },
+                                ]
+                            })
+
+                            return "task complete";
+
+                        } catch (error) {
+                            console.error(error)
+                            // writable.getWriter().write({
+                            //     id: index,
+                            //     type: "data-task-error",
+                            //     data: {
+                            //         error: error instanceof Error ? error.message : String(error),
+                            //     },
+                            // });
+                        } finally {
+                            // writable.getWriter().write({
+                            //     id: index,
+                            //     type: "data-task-complete",
+                            //     data: {
+                            //         task: currentTask.task,
+                            //     },
+                            // });
+                        }
+                    }
+
+                },
+                toModelOutput: async ({ output: messages }: { output: ModelMessage[] }) => {
+                    const lastMessage = messages.slice(-1)[0];
+                    const content = lastMessage.content;
+                    const text = typeof content === "string"
+                        ? content
+                        : Array.isArray(content)
+                            ? content.filter((p): p is { type: "text"; text: string } => p.type === "text").map(p => p.text).join("\n")
+                            : String(content);
+                    return {
+                        type: "text" as const,
+                        value: text,
+                    }
+                }
+            }
+        }
+    })
+
+    // const codingAgent = new DurableAgent({
+    //     model: "anthropic/claude-haiku-4.5",
+    //     system: SANDBOX_AGENT_PROMPT,
+    //     tools: {
+    //         upsertFiles: createUpsertFilesTool({ commandTrace }),
+    //         runCommand: createRunCommandTool({ commandTrace }),
+    //         getLogs: createGetLogsTool(),
+    //         startSandbox: createStartSandboxTool(),
+    //         checkSandbox: createCheckSandboxTool(),
+    //     },
+    // });
+
+    await orchestrator.stream({
         messages,
         writable,
     });

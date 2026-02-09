@@ -33,6 +33,7 @@ import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Reasoning, ReasoningContent, ReasoningTrigger } from "../ai-elements/reasoning";
 import ShimmerTextToolCall from "../ai-elements/tool/shimmer-text-tool-call";
+import TaskListToolCall from "../ai-elements/tool/task-list-tool-call";
 import UpsertFilesToolCall from "../ai-elements/tool/upsert-files-tool-call";
 
 interface ChatMessagesProps {
@@ -133,6 +134,18 @@ const ChatMessages = ({ messages, className, status }: ChatMessagesProps) => {
                                                 return (
                                                     <ShimmerTextToolCall key={`${message.id}-${i}`} status={part.state} icon={<Box className="size-4" />} beforeText="Starting sandbox..." afterText="Sandbox started" />
                                                 )
+                                            case "tool-startCoding": {
+                                                const input = (part as { input?: { tasks: Array<{ task: string; type: "db" | "api" | "ui" }> } }).input;
+                                                const tasks = input?.tasks ?? [];
+
+                                                return (
+                                                    <TaskListToolCall
+                                                        key={`${message.id}-${i}`}
+                                                        state={part.state}
+                                                        tasks={tasks}
+                                                    />
+                                                );
+                                            }
                                             case "tool-upsertFiles": {
                                                 const toolCallId = (part as { toolCallId?: string }).toolCallId || '';
                                                 // Find all data-file-upsert parts that belong to this tool call
