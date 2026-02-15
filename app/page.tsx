@@ -21,7 +21,7 @@ export default function ChatPage() {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<Terminal | null>(null)
-  const { status: sandboxStatus, start, check, container, url, initTerminal } = useSandbox({ iframeRef, terminalRef, xtermRef });
+  const { status: sandboxStatus, start, check, container, url, studioUrl, initTerminal } = useSandbox({ iframeRef, terminalRef, xtermRef });
 
 
   // Check for an active workflow run on mount
@@ -77,9 +77,7 @@ export default function ChatPage() {
         <ResizablePanel defaultSize={60}>
           <ResizablePanelGroup orientation="vertical">
             <ResizablePanel defaultSize={75}>
-              <AppPreview url={url} status={sandboxStatus} iframeRef={iframeRef} onClose={() => { }} onFullscreen={() => {
-                iframeRef.current?.requestFullscreen();
-              }} onReload={() => {
+              <AppPreview url={url} studioUrl={studioUrl} wc={container} status={sandboxStatus} iframeRef={iframeRef} onClose={() => { }} onReload={() => {
                 if (iframeRef.current) {
                   iframeRef.current.src = iframeRef.current.src;
                 }

@@ -84,7 +84,7 @@ async function upsertFiles({ prompt, commandTrace }: { prompt: string, commandTr
     const { files: confirmedFiles } = await hook;
 
     // Workflow resumes here after frontend confirms files were written to sandbox
-    return files
+    return confirmedFiles
 }
 
 async function runCommand({ command, args, background = false }: { command: string, args: string[], background?: boolean }, { toolCallId }: { toolCallId: string }) {

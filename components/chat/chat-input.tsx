@@ -76,6 +76,7 @@ const ChatInput = ({ status, className, sendMessage }: ChatInputProps) => {
         <div className="size-full">
 
             <PromptInput
+                autoFocus
                 globalDrop
                 multiple
                 onSubmit={handleSubmit}

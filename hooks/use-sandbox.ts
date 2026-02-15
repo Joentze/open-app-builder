@@ -12,6 +12,7 @@ interface Sandbox {
 }
 function useSandbox({ iframeRef, terminalRef, xtermRef }: Sandbox) {
     const [url, setUrl] = useState<string | null>(null);
+    const [studioUrl, setStudioUrl] = useState<string | null>(null);
     const [status, setStatus] = useState<SandboxStatus>("not-started");
     const [container, setContainer] = useState<WebContainer | null>(null);
     const { resolvedTheme } = useTheme();
@@ -155,8 +156,11 @@ function useSandbox({ iframeRef, terminalRef, xtermRef }: Sandbox) {
                         iframeRef.current.src = serverUrl;
                         setStatus("dev");
                     }
+                    setUrl(serverUrl);
                 }
-                setUrl(serverUrl);
+                if (port >= 4000 && port <= 4999) {
+                    setStudioUrl(serverUrl);
+                }
             });
             container.on("error", (error) => {
                 console.error("162", error);
@@ -165,7 +169,7 @@ function useSandbox({ iframeRef, terminalRef, xtermRef }: Sandbox) {
     }, [container, iframeRef]);
 
 
-    return { status, start, stop, container, url, check, initTerminal, fitAddon: fitAddonRef }
+    return { status, start, stop, container, url, studioUrl, check, initTerminal, fitAddon: fitAddonRef }
 }
 
 export { useSandbox, type SandboxStatus }
