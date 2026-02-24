@@ -1,26 +1,22 @@
-import { type ModelMessage, type UIMessageChunk } from "ai";
+
 import { DurableAgent } from "@workflow/ai/agent";
 import { createUpsertFilesTool, createRunCommandTool, createGetLogsTool, createStartSandboxTool, createCheckSandboxTool } from "@/workflows/utils/tools/coding-tools";
-import { SANDBOX_AGENT_PROMPT } from "@/lib/prompts/sandbox-agent-prompt";
+import { SANDBOX_AGENT_PROMPT, DB_AGENT_PROMPT, API_AGENT_PROMPT, UI_AGENT_PROMPT } from "@/lib/prompts/sandbox-agent-prompt";
 
 type CodingAgentType = "db" | "api" | "ui";
 
-interface CodingAgentParams {
-    index: number;
-    commandTrace: string[];
-    type: CodingAgentType;
-    messages: ModelMessage[];
-    writable: WritableStream<UIMessageChunk>;
-    abortSignal: AbortSignal | undefined;
-}
-
-async function codingAgent({ index, commandTrace, type, messages, writable, abortSignal }: CodingAgentParams) {
-
+function codingAgent({ commandTrace, type }: { commandTrace: string[], type?: CodingAgentType }): DurableAgent {
+    const agentPrompt: Record<CodingAgentType, string> = {
+        db: DB_AGENT_PROMPT,
+        api: API_AGENT_PROMPT,
+        ui: UI_AGENT_PROMPT,
+    }
     const agent = new DurableAgent({
         model: "anthropic/claude-haiku-4.5",
-        system: SANDBOX_AGENT_PROMPT +
-            // add in file changes summary prompt
-            "Summarise the changes you made at the end, list the files you updated and the changes you made to each file.",
+        system:
+            // type ? agentPrompt[type as CodingAgentType] : 
+            SANDBOX_AGENT_PROMPT +
+            `*IMPORTANT*: At end, list modified files and changes (10 words per file). Do not include any other text in your response.`,
         tools: {
             startSandbox: createStartSandboxTool(),
             checkSandbox: createCheckSandboxTool(),
@@ -29,18 +25,9 @@ async function codingAgent({ index, commandTrace, type, messages, writable, abor
             getLogs: createGetLogsTool(),
         },
     });
-    const { messages: codingAgentMessages } = await agent.stream({
-        messages,
-        writable,
-        sendStart: false,
-        sendFinish: false,
-        preventClose: true,
-        abortSignal
-    });
 
-    return codingAgentMessages.slice(-1)[0];
-
+    return agent;
 }
 
 
-export { type CodingAgentType, type CodingAgentParams, codingAgent };
+export { type CodingAgentType, codingAgent };

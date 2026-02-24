@@ -24,7 +24,8 @@ function createRunCommandTool({ commandTrace }: CodingToolsParams) {
 function createUpsertFilesTool({ commandTrace }: CodingToolsParams) {
     return {
         inputSchema: z.object({
-            prompt: z.string(),
+            prompt: z.string().describe("Prompt to describe the changes to be made to each of the files in the list"),
+            files: z.array(z.string()).describe("File paths from root to create/update. IMPORTANT: Use getLogs or checkSandbox first to understand the project structure. Examples: ['app/page.tsx', 'components/ui/button.tsx', 'lib/utils.ts', 'package.json']. Write source files (.tsx, .ts, .css), DO NOT write config files (package.json, tsconfig.json)."),
         }),
         outputSchema: z.string(),
         description: `Use this tool to upsert files in the sandbox, use the prompt to describe in detail, 
@@ -32,8 +33,8 @@ function createUpsertFilesTool({ commandTrace }: CodingToolsParams) {
         detail the style guidelines as well. If you are inserting/updating a file, explicityly mention
         in the prompt. If user wants to update a file, use runCommand tool to get the current contents of the file.
         and then use the upsertFiles tool to update the file.`,
-        execute: async ({ prompt }: { prompt: string }, toolData: { toolCallId: string }) => {
-            return await upsertFiles({ prompt, commandTrace }, toolData);
+        execute: async ({ prompt, files }: { prompt: string, files: string[] }, toolData: { toolCallId: string }) => {
+            return await upsertFiles({ prompt, files, commandTrace }, toolData);
         },
     };
 }

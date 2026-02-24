@@ -1,12 +1,44 @@
-import z from "zod";
-import { getWritable, fetch } from "workflow";
-import { DurableAgent } from "@workflow/ai/agent";
-import { noOfTimesToolHasBeenUsed } from "@/workflows/utils/conditions/tool-use";
-import { CodingAgentType, codingAgent } from "@/workflows/utils/agents/coding-agent";
-import { convertToModelMessages, generateText, hasToolCall, readUIMessageStream, UIMessage, type ModelMessage, type UIMessageChunk } from "ai";
-import { SANDBOX_UPSERT_FILES_AGENT_PROMPT } from "@/lib/prompts/sandbox-agent-prompt";
-import { createCheckSandboxTool, createGetLogsTool, createRunCommandTool, createStartSandboxTool, createUpsertFilesTool } from "../utils/tools/coding-tools";
 
+import { getWritable, fetch } from "workflow";
+import { type ModelMessage, type UIMessageChunk } from "ai";
+import { categorise } from "@/workflows/chat/tools/categorisation";
+import { planner } from "./tools/planner";
+import { codingAgent } from "../utils/agents/coding-agent";
+
+function writeToStream<T extends UIMessageChunk>(
+    writable: WritableStream<UIMessageChunk>,
+    chunk: T
+) {
+    const writer = writable.getWriter();
+    writer.write(chunk);
+    writer.releaseLock();
+}
+
+function getTaskInstructionByType(type: "db" | "api" | "ui"): string {
+    if (type === "db") {
+        return `
+Create database schema in \`src/db/tables\` using Drizzle ORM.
+- Define/update tables in \`src/db/tables/*.ts\`
+- Export tables in \`src/db/schema.ts\`
+- Run \`pnpm db:push\` after schema changes
+`;
+    }
+
+    if (type === "api") {
+        return `
+Write API routes in \`./api\` (e.g. \`./api/users.ts\`) using Hono.
+- Import \`db\` from \`../src/index\` and tables from \`../src/db/schema\`
+- Add/update route handlers in the route file
+- Register routes in \`./server.ts\` and preserve existing routes
+`;
+    }
+
+    return `
+Build UI components/pages for this feature.
+- Use existing project structure and component patterns
+- Keep styles consistent with existing UI
+`;
+}
 
 export async function chatWorkflow(incomingMessages: ModelMessage[]) {
     "use workflow";
@@ -18,6 +50,11 @@ export async function chatWorkflow(incomingMessages: ModelMessage[]) {
 
     let commandTrace: string[] = [];
     let messages: ModelMessage[] = incomingMessages;
+
+    const category = await categorise({ messages, writable })
+
+    // console.log(88, category)
+
 
     // const orchestrator = new DurableAgent({
     //     model: "anthropic/claude-haiku-4.5",
@@ -135,20 +172,66 @@ export async function chatWorkflow(incomingMessages: ModelMessage[]) {
     //     }
     // })
 
-    const codingAgent = new DurableAgent({
-        model: "anthropic/claude-haiku-4.5",
-        system: SANDBOX_UPSERT_FILES_AGENT_PROMPT,
-        tools: {
-            upsertFiles: createUpsertFilesTool({ commandTrace }),
-            runCommand: createRunCommandTool({ commandTrace }),
-            getLogs: createGetLogsTool(),
-            startSandbox: createStartSandboxTool(),
-            checkSandbox: createCheckSandboxTool(),
-        },
-    });
+    switch (category) {
+        case "easy":
+            // if it is a straight forward task, use regular agent, no need for plan
+            await codingAgent({ commandTrace }).stream({
+                sendStart: false,
+                messages,
+                writable,
+            });
+            break;
+        case "medium":
+        case "hard":
+            // form plan
+            const plan = await planner({ messages, writable, commandTrace });
+            // writeToStream(writable, {
+            //     type: "data-plan",
+            //     data: plan,
+            // });
+            const completedResponseMessages: ModelMessage[] = [];
+            for (const [index, task] of plan.entries()) {
 
-    await codingAgent.stream({
-        messages,
-        writable,
-    });
+                const { taskTitle, type } = task;
+
+                const { uiMessages } = await codingAgent({ commandTrace, type }).stream({
+                    sendStart: false,
+                    writable,
+                    collectUIMessages: true,
+                    messages: [
+                        ...messages,
+                        ...completedResponseMessages,
+                        {
+                            role: "user" as const,
+                            content: [
+                                `Complete this task: ${taskTitle}`,
+                                getTaskInstructionByType(type),
+                            ].join("\n\n"),
+                        },
+                    ],
+                    activeTools: index === 0
+                        ? ["checkSandbox", "startSandbox", "upsertFiles", "runCommand", "getLogs"]
+                        : ["upsertFiles", "runCommand", "getLogs"],
+                    sendFinish: index === plan.length - 1,
+                });
+                const taskSummary = uiMessages?.slice(-1)[0].parts.findLastIndex((part) => part.type === "text");
+                const taskMessage: ModelMessage = {
+                    role: "assistant" as const,
+                    content: [
+                        "Completed task: " + taskTitle,
+                        "Summary of changes: " + taskSummary,
+                    ].join("\n\n"),
+                }
+                completedResponseMessages.push(taskMessage);
+                // writeToStream(writable, {
+                //     type: "data-task-complete",
+                //     data: {
+                //         index,
+                //         task: taskTitle,
+                //     },
+                // });
+            }
+            break;
+    }
+
 }
