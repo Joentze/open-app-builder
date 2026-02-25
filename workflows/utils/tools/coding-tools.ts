@@ -1,8 +1,10 @@
 import z from "zod";
 import { checkSandbox, getLogs, runCommand, startSandbox, upsertFiles } from "../../chat/tools/steps";
+import { ModelMessage } from "ai";
 
 interface CodingToolsParams {
     commandTrace: string[];
+    summaries: unknown[];
 }
 
 function createRunCommandTool({ commandTrace }: CodingToolsParams) {
@@ -21,7 +23,7 @@ function createRunCommandTool({ commandTrace }: CodingToolsParams) {
     };
 }
 
-function createUpsertFilesTool({ commandTrace }: CodingToolsParams) {
+function createUpsertFilesTool({ commandTrace, summaries }: CodingToolsParams) {
     return {
         inputSchema: z.object({
             prompt: z.string().describe("Prompt to describe the changes to be made to each of the files in the list"),
@@ -33,8 +35,8 @@ function createUpsertFilesTool({ commandTrace }: CodingToolsParams) {
         detail the style guidelines as well. If you are inserting/updating a file, explicityly mention
         in the prompt. If user wants to update a file, use runCommand tool to get the current contents of the file.
         and then use the upsertFiles tool to update the file.`,
-        execute: async ({ prompt, files }: { prompt: string, files: string[] }, toolData: { toolCallId: string }) => {
-            return await upsertFiles({ prompt, files, commandTrace }, toolData);
+        execute: async ({ prompt, files }: { prompt: string, files: string[] }, toolData: { toolCallId: string, messages: ModelMessage[] }) => {
+            return await upsertFiles({ prompt, files, commandTrace, summaries }, toolData);
         },
     };
 }

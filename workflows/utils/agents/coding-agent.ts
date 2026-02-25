@@ -12,7 +12,7 @@ function codingAgent({ commandTrace, type }: { commandTrace: string[], type?: Co
         ui: UI_AGENT_PROMPT,
     }
     const agent = new DurableAgent({
-        model: "anthropic/claude-haiku-4.5",
+        model: "anthropic/claude-sonnet-4.5",
         system:
             // type ? agentPrompt[type as CodingAgentType] : 
             SANDBOX_AGENT_PROMPT +

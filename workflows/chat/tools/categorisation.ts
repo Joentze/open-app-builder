@@ -5,7 +5,7 @@ import z from "zod";
 async function categorise({ messages, writable }: { messages: ModelMessage[], writable: WritableStream<UIMessageChunk> }) {
     let retCategory: "easy" | "medium" | "hard" | undefined;
     const categoriser = new DurableAgent({
-        model: "minimax/minimax-m2.5",
+        model: "google/gemini-3-flash",
         system: `
         You are an expert at analyzing application complexity in web development. Your task is to categorize user requests into one of three complexity levels: \`easy\`, \`medium\`, or \`hard\`.
 

@@ -1,5 +1,5 @@
 import { getWritable } from "workflow";
-import type { LanguageModel, UIMessageChunk } from "ai";
+import type { LanguageModel, ModelMessage, UIMessageChunk } from "ai";
 
 import { streamText, Output } from 'ai';
 import { z } from 'zod';
@@ -14,12 +14,12 @@ import { GoogleGenerativeAIProviderOptions } from "@ai-sdk/google";
 
 
 // Inner step that handles streaming (has "use step")
-async function generateFilesStep(prompt: string, files: string[], commandTraceString: string, toolCallId: string) {
+async function generateFilesStep(prompt: string, messages: ModelMessage[], files: string[], commandTraceString: string, toolCallId: string) {
     "use step";
     const writable = getWritable<UIMessageChunk>();
     const writer = writable.getWriter();
     const { elementStream } = streamText({
-        model: 'anthropic/claude-haiku-4.5' as LanguageModel,
+        model: 'anthropic/claude-sonnet-4.5' as LanguageModel,
         system: `${SANDBOX_UPSERT_FILES_AGENT_PROMPT}\n\nCommand Trace: ${commandTraceString}
         Generated Files: ${files.join(", ")}
         `,
@@ -29,7 +29,7 @@ async function generateFilesStep(prompt: string, files: string[], commandTraceSt
                 content: z.string(),
             }),
         }),
-        prompt,
+        messages,
         providerOptions: {
             google: {
                 thinkingConfig: {
@@ -61,12 +61,13 @@ async function generateFilesStep(prompt: string, files: string[], commandTraceSt
 }
 
 // Outer workflow function (NO "use step") - can use hooks
-async function upsertFiles({ prompt, files: filesToGenerate, commandTrace }: { prompt: string, files: string[], commandTrace: string[] }, { toolCallId }: { toolCallId: string }) {
+async function upsertFiles({ prompt, files: filesToGenerate, commandTrace, summaries }: { prompt: string, files: string[], commandTrace: string[], summaries: unknown[] }, { toolCallId, messages }: { toolCallId: string, messages: ModelMessage[] }) {
     // NO "use step" here - this is workflow context
     const lastFiveCommands = commandTrace.slice(-3);
     const lastFiveCommandsString = lastFiveCommands.join("\n");
+    const messagesWithSummaries = [...summaries, { role: "user" as const, content: [{ type: "text", text: prompt }] }]
     // Call the step to stream files to frontend
-    const files = await generateFilesStep(prompt, filesToGenerate, lastFiveCommandsString, toolCallId);
+    const files = await generateFilesStep(prompt, messagesWithSummaries as ModelMessage[], filesToGenerate, lastFiveCommandsString, toolCallId);
 
     // Now in workflow context - create hook and wait for frontend confirmation
     const hook = filesWrittenResponseHook.create({ token: toolCallId });
